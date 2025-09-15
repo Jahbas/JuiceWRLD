@@ -67,10 +67,10 @@ function cardHtml(song){
 }
 
 function albumCardHtml(album){
-  const songs = SONGS.filter(s=>s.album===album.name);
-  const year = album.year ?? unique(songs.map(s=>s.year))[0];
+  const songs = SONGS.filter(s=> (album.id && s.albumId===album.id) || s.album===album.name);
+  const year = album.year ?? unique(songs.map(s=>s.year)).sort((a,b)=>a-b)[0];
   return `
-  <article class="card album" data-album="${album.name}">
+  <article class="card album" data-album="${album.name}" data-album-id="${album.id||''}">
     <div class="thumb" style="background-image:${album.cover?`url(${album.cover})`:''}"></div>
     <div class="content">
       <div class="title-row">
@@ -84,7 +84,7 @@ function albumCardHtml(album){
 }
 
 function openAlbumModal(album){
-  const songs = SONGS.filter(s=>s.album===album.name).sort((a,b)=>a.title.localeCompare(b.title));
+  const songs = SONGS.filter(s=> (album.id && s.albumId===album.id) || s.album===album.name).sort((a,b)=>a.title.localeCompare(b.title));
   els.albumTitle.textContent = album.name;
   els.albumMeta.innerHTML = [
     album.releaseDate && `Release: <strong>${album.releaseDate}</strong>`,
@@ -111,40 +111,24 @@ function openAlbumModal(album){
 function bindAlbumCardEvents(albums){
   els.grid.querySelectorAll('.card.album .icon-btn.info').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
-      const name = e.currentTarget.closest('.card.album').dataset.album;
-      const album = albums.find(a=>a.name===name);
+      const el = e.currentTarget.closest('.card.album');
+      const id = el.dataset.albumId; const name = el.dataset.album;
+      const album = id ? albums.find(a=>String(a.id)===String(id)) : albums.find(a=>a.name===name);
       openAlbumModal(album);
     });
   });
 }
 
 function getAlbums(){
-  // Merge discovered albums from songs with ALBUMS metadata
-  const discovered = new Map();
+  if(ALBUMS.length){ return ALBUMS.map(a=>({ ...a })); }
+  // Fallback: derive from songs
+  const byKey = new Map();
   for(const s of SONGS){
-    if(!s.album || s.album === 'N/A' || s.album === 'Single') continue;
-    if(!discovered.has(s.album)) discovered.set(s.album, { name: s.album, year: s.year, cover: s.cover, tags: [] });
+    const key = s.albumId || s.album;
+    if(!key || s.album==='N/A' || s.album==='Single') continue;
+    if(!byKey.has(key)) byKey.set(key, { id: s.albumId, name: s.album, year: s.year, cover: s.cover, tags: [], releaseDate: s.year? String(s.year):'' });
   }
-  const merged = [];
-  const byName = new Map(ALBUMS.map(a=>[a.name,a]));
-  for(const [name, obj] of discovered){
-    const meta = byName.get(name);
-    merged.push({
-      name,
-      year: obj.year || undefined,
-      cover: obj.cover || '',
-      tags: meta?.tags || obj.tags || [],
-      releaseDate: meta?.releaseDate || '',
-      reissueDate: meta?.reissueDate || '',
-    });
-  }
-  // Also include albums listed in ALBUMS even if no song objects yet (optional)
-  for(const a of ALBUMS){
-    if(!merged.find(m=>m.name===a.name)){
-      merged.push({ name: a.name, year: undefined, cover: '', tags: a.tags||[], releaseDate: a.releaseDate||'', reissueDate: a.reissueDate||'' });
-    }
-  }
-  return merged;
+  return [...byKey.values()];
 }
 
 function openModal(song){
@@ -280,12 +264,23 @@ async function refreshArtworkForAll(){
 async function fetchFromITunes(){
   const artist = await itunesFindArtist('Juice WRLD');
   if(!artist) return;
-  const [albums, songs] = await Promise.all([
+  const [albums, songs, albumsSearch, songsSearch] = await Promise.all([
     itunesLookup(artist.artistId, 'album', 200),
     itunesLookup(artist.artistId, 'song', 200),
+    itunesSearchPaged('Juice WRLD', 'album', 5),
+    itunesSearchPaged('Juice WRLD', 'song', 8),
   ]);
+  const allAlbums = dedupeBy(
+    [...albums, ...albumsSearch],
+    a => String(a.collectionId || a.collectionName)
+  );
+  const allSongs = dedupeBy(
+    [...songs, ...songsSearch].filter(s=> /juice wrld/i.test(s.artistName||'')),
+    s => String(s.trackId || s.trackViewUrl || `${s.trackName}-${s.collectionId}`)
+  );
   // Albums
-  ALBUMS.splice(0, ALBUMS.length, ...albums.map(a=>({
+  ALBUMS.splice(0, ALBUMS.length, ...allAlbums.map(a=>({
+    id: a.collectionId,
     name: a.collectionName,
     releaseDate: a.releaseDate ? a.releaseDate.slice(0,10) : '',
     reissueDate: '',
@@ -293,23 +288,21 @@ async function fetchFromITunes(){
     cover: a.artworkUrl100 ? a.artworkUrl100.replace('100x100bb.jpg','512x512bb.jpg') : '',
   })));
   // Songs
-  SONGS.splice(0, SONGS.length, ...songs
-    .filter(s=> /juice wrld/i.test(s.artistName||''))
-    .map(s=>({
-      id: String(s.trackId || s.trackViewUrl),
-      title: s.trackName,
-      status: 'released',
-      album: s.collectionName || 'Single',
-      year: s.releaseDate ? new Date(s.releaseDate).getFullYear() : undefined,
-      producers: [],
-      writers: [],
-      lengthSec: s.trackTimeMillis ? Math.round(s.trackTimeMillis/1000) : undefined,
-      tags: [],
-      cover: s.artworkUrl100 ? s.artworkUrl100.replace('100x100bb.jpg','512x512bb.jpg') : '',
-      links: s.trackViewUrl ? [{ label: 'Apple Music', url: s.trackViewUrl }] : [],
-      description: '',
-    }))
-  );
+  SONGS.splice(0, SONGS.length, ...allSongs.map(s=>({
+    id: String(s.trackId || s.trackViewUrl || `${s.trackName}-${s.collectionId}`),
+    title: s.trackName,
+    status: 'released',
+    albumId: s.collectionId,
+    album: s.collectionName || 'Single',
+    year: s.releaseDate ? new Date(s.releaseDate).getFullYear() : undefined,
+    producers: [],
+    writers: [],
+    lengthSec: s.trackTimeMillis ? Math.round(s.trackTimeMillis/1000) : undefined,
+    tags: [],
+    cover: s.artworkUrl100 ? s.artworkUrl100.replace('100x100bb.jpg','512x512bb.jpg') : '',
+    links: s.trackViewUrl ? [{ label: 'Apple Music', url: s.trackViewUrl }] : [],
+    description: '',
+  })));
 }
 
 async function itunesFindArtist(name){
@@ -323,6 +316,25 @@ async function itunesLookup(artistId, entity, limit){
   const res = await fetch(url); if(!res.ok) return [];
   const json = await res.json();
   return (json.results||[]).filter(x=> x.wrapperType==='collection' || x.wrapperType==='track');
+}
+
+async function itunesSearchPaged(term, entity, pages){
+  const out = [];
+  const pageCount = Math.max(1, pages||1);
+  for(let p=0;p<pageCount;p++){
+    const offset = p*200;
+    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=${entity}&media=music&limit=200&offset=${offset}`;
+    const res = await fetch(url); if(!res.ok) break; const json = await res.json();
+    out.push(...(json.results||[]));
+    if(!(json.results||[]).length) break;
+  }
+  return out;
+}
+
+function dedupeBy(arr, keyFn){
+  const map = new Map();
+  for(const item of arr){ const key = keyFn(item); if(!map.has(key)) map.set(key, item); }
+  return [...map.values()];
 }
 
 // removed MusicBrainz/CAA sync helpers
