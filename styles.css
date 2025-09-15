@@ -123,3 +123,9 @@ body{
   .card:hover{transform:none}
 }
 
+/* Loading overlay */
+.loading-overlay{display:grid; place-items:center; gap:10px; padding:30px; border-radius:16px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); margin:20px 0}
+.spinner{width:32px; height:32px; border-radius:50%; border:3px solid rgba(255,255,255,.15); border-top-color:var(--accent); animation:spin 1s linear infinite}
+.loading-text{color:var(--muted)}
+@keyframes spin{to{transform:rotate(360deg)}}
+

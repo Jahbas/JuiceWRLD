@@ -28,6 +28,7 @@ const els = {
   albumMeta: document.getElementById('albumMeta'),
   albumTags: document.getElementById('albumTags'),
   albumTracks: document.getElementById('albumTracks'),
+  loadingOverlay: document.getElementById('loadingOverlay'),
 };
 
 function secondsToTime(s){
@@ -175,6 +176,8 @@ function bindCardEvents(){
 function filterSongs(){ return SONGS; }
 
 function render(){
+  // Hide loader if we have any songs
+  if(els.loadingOverlay){ els.loadingOverlay.hidden = SONGS.length > 0; }
   if(state.view==='songs'){
     els.albumSort.hidden = true;
     const filtered = filterSongs();
@@ -225,10 +228,11 @@ function init(){
   els.tabSongs.addEventListener('click', ()=> setTab('songs'));
   els.tabAlbums.addEventListener('click', ()=> setTab('albums'));
   // Pull data from public APIs, then refresh artwork
+  if(els.loadingOverlay) els.loadingOverlay.hidden = false;
   fetchFromITunes()
     .catch(()=>{})
     .then(()=> refreshArtworkForAll())
-    .then(()=>{ if(state.view==='songs') render(); });
+    .then(()=>{ if(state.view==='songs') render(); if(els.loadingOverlay) els.loadingOverlay.hidden = SONGS.length > 0; });
 }
 
 // removed CSV/import helpers
