@@ -1,274 +1,10 @@
-// Albums metadata (release and reissue dates)
-const ALBUMS = [
-  { name: "Goodbye & Good Riddance", releaseDate: "May 23, 2018", reissueDate: "July 10 & December 10, 2018", tags: ["debut","2018"] },
-  { name: "Too Soon...", releaseDate: "June 19, 2018", tags: ["EP","2018"] },
-  { name: "Future & Juice WRLD Present... WRLD ON DRUGS", releaseDate: "October 19, 2018", tags: ["collab","2018"] },
-  { name: "Death Race For Love", releaseDate: "March 8, 2019", tags: ["album","2019"] },
-  { name: "Legends Never Die", releaseDate: "July 10, 2020", reissueDate: "August 7, 2020", tags: ["posthumous","2020"] },
-  { name: "Goodbye & Good Riddance (Anniversary Edition)", releaseDate: "May 28, 2021", tags: ["anniversary","2021"] },
-  { name: "Fighting Demons", releaseDate: "December 10, 2021", tags: ["posthumous","2021"] },
-  { name: "Fighting Demons (Complete/Extended)", releaseDate: "February 2022", tags: ["deluxe","2022"] },
-  { name: "The Pre-Party", releaseDate: "September 9, 2024", tags: ["2024"] },
-  { name: "The Pre-Party (Extended Edition)", releaseDate: "October 14, 2024", tags: ["2024","extended"] },
-  { name: "The Party Never Ends", releaseDate: "November 29, 2024", reissueDate: "November 30, 2024", tags: ["2024"] },
-  { name: "Legends Never Die (5 Year Anniversary Edition)", releaseDate: "July 11, 2025", tags: ["anniversary","2025"] },
-];
+// Start empty; populated from public sources (Google Sheet)
+const ALBUMS = [];
 
-// Lightweight curated dataset. Extend as needed.
-const SONGS = [
-  {
-    id: "lucid-dreams",
-    title: "Lucid Dreams",
-    status: "released",
-    album: "Goodbye & Good Riddance",
-    year: 2018,
-    producers: ["Nick Mira"],
-    writers: ["Jarad Higgins"],
-    lengthSec: 239,
-    tags: ["emo rap","melodic","breakup"],
-    cover: "https://i.scdn.co/image/ab67616d0000b273a7340fd7b6bff5841b1390d0",
-    links: [{ label: "Spotify", url: "https://open.spotify.com/track/0s3nnoMeVWz3989MkNQiRf" }],
-    description: "Breakout single interpolating Sting's 'Shape of My Heart'.",
-  },
-  {
-    id: "all-girls-are-the-same",
-    title: "All Girls Are The Same",
-    status: "released",
-    album: "Goodbye & Good Riddance",
-    year: 2018,
-    producers: ["Nick Mira"],
-    writers: ["Jarad Higgins"],
-    lengthSec: 174,
-    tags: ["breakout","emo rap"],
-    cover: "",
-    links: [],
-    description: "One of the first major-label singles for Juice WRLD.",
-  },
-  {
-    id: "lean-wit-me",
-    title: "Lean Wit Me",
-    status: "released",
-    album: "Goodbye & Good Riddance",
-    year: 2018,
-    producers: ["Nick Mira"],
-    writers: ["Jarad Higgins"],
-    lengthSec: 175,
-    tags: ["melodic","anthem"],
-    cover: "",
-    links: [],
-    description: "Hit single with introspective lyricism.",
-  },
-  {
-    id: "wishing-well",
-    title: "Wishing Well",
-    status: "released",
-    album: "Legends Never Die",
-    year: 2020,
-    producers: ["Dr. Luke","Sam Sumser","Ilya"],
-    writers: ["Jarad Higgins"],
-    lengthSec: 199,
-    tags: ["posthumous","candor","anthem"],
-    cover: "https://i.scdn.co/image/ab67616d0000b2737d8c2ffcf98101efb5da0c16",
-    links: [{ label: "Spotify", url: "https://open.spotify.com/track/2U5WueTLIK5WJLD7mvDODv" }],
-    description: "Introspective cut on addiction and recovery, released posthumously.",
-  },
-  {
-    id: "come-and-go",
-    title: "Come & Go (with Marshmello)",
-    status: "released",
-    album: "Legends Never Die",
-    year: 2020,
-    producers: ["Marshmello"],
-    writers: ["Jarad Higgins"],
-    lengthSec: 195,
-    tags: ["collab","anthem"],
-    cover: "",
-    links: [],
-    description: "EDM-rap fusion peak from the album.",
-  },
-  {
-    id: "cigarettes",
-    title: "Cigarettes",
-    status: "released",
-    album: "Fighting Demons (Deluxe)",
-    year: 2022,
-    producers: ["Nick Mira"],
-    writers: ["Jarad Higgins"],
-    lengthSec: 216,
-    tags: ["melodic","relationship"],
-    cover: "https://i.scdn.co/image/ab67616d0000b273c6b9c7c0788d7a5c57d59c09",
-    links: [{ label: "Spotify", url: "https://open.spotify.com/track/7n4Sz3wYRA8d8y0zS04LZy" }],
-    description: "Fan-favorite leak turned official release in 2022.",
-  },
-  {
-    id: "go-hard-2.0",
-    title: "Go Hard 2.0",
-    status: "released",
-    album: "Fighting Demons (Deluxe)",
-    year: 2022,
-    producers: ["Nick Mira","DT"] ,
-    writers: ["Jarad Higgins"],
-    lengthSec: 181,
-    tags: ["anthem","hype"],
-    cover: "https://i.scdn.co/image/ab67616d0000b273c6b9c7c0788d7a5c57d59c09",
-    links: [{ label: "Spotify", url: "https://open.spotify.com/track/3gqV5HcTZXGmWlmZBkPdgV" }],
-    description: "Up-tempo banger popularized through snippets and leaks.",
-  },
-  {
-    id: "burn",
-    title: "Burn",
-    status: "released",
-    album: "Fighting Demons",
-    year: 2021,
-    producers: ["Nick Mira","Rex Kudo"],
-    writers: ["Jarad Higgins"],
-    lengthSec: 204,
-    tags: ["posthumous","anthem"],
-    cover: "",
-    links: [],
-    description: "Album opener with soaring melodies.",
-  },
-  {
-    id: "girl-of-my-dreams",
-    title: "Girl Of My Dreams (with Suga)",
-    status: "released",
-    album: "Fighting Demons",
-    year: 2021,
-    producers: ["Rami"],
-    writers: ["Jarad Higgins"],
-    lengthSec: 171,
-    tags: ["collab","pop rap"],
-    cover: "",
-    links: [],
-    description: "Pop-leaning collaboration from Fighting Demons.",
-  },
-  {
-    id: "up-up-and-away",
-    title: "Up Up and Away",
-    status: "released",
-    album: "Legends Never Die",
-    year: 2020,
-    producers: ["Nick Mira","Rex Kudo"],
-    writers: ["Jarad Higgins"],
-    lengthSec: 162,
-    tags: ["uplifting","anthem"],
-    cover: "https://i.scdn.co/image/ab67616d0000b2737d8c2ffcf98101efb5da0c16",
-    links: [{ label: "Spotify", url: "https://open.spotify.com/track/1yKu2MhpwzDXXH2tzG6xoa" }],
-    description: "Energetic closer with soaring melodies.",
-  },
-  {
-    id: "moonlight",
-    title: "Moonlight",
-    status: "unreleased",
-    album: "N/A",
-    year: 2019,
-    producers: ["Nick Mira"],
-    writers: ["Jarad Higgins"],
-    lengthSec: 196,
-    tags: ["unreleased","melodic"],
-    cover: "",
-    links: [],
-    description: "Unreleased track known from snippets and leaks in the community.",
-  },
-  {
-    id: "righteous",
-    title: "Righteous",
-    status: "released",
-    album: "Single",
-    year: 2020,
-    producers: ["Nick Mira","Rex Kudo","TM88"],
-    writers: ["Jarad Higgins"],
-    lengthSec: 258,
-    tags: ["posthumous","single","anthemic"],
-    cover: "https://i.scdn.co/image/ab67616d0000b273066d1b0ca1933e6566981df4",
-    links: [{ label: "Spotify", url: "https://open.spotify.com/track/6wWaVoUOzLQJTIU21WQ9rT" }],
-    description: "First posthumous single; reflective and soaring.",
-  },
-  {
-    id: "hide",
-    title: "Hide (with Seezyn)",
-    status: "released",
-    album: "Spider-Man: Into the Spider-Verse",
-    year: 2018,
-    producers: ["Danny Wolf"],
-    writers: ["Jarad Higgins"],
-    lengthSec: 181,
-    tags: ["soundtrack","melodic"],
-    cover: "https://i.scdn.co/image/ab67616d0000b273a3f8cc1f6f2f3b1b14cf5761",
-    links: [{ label: "Spotify", url: "https://open.spotify.com/track/1c8gk2PeTE04A1pIDH9YMk" }],
-    description: "Soundtrack cut with dreamy production.",
-  },
-  {
-    id: "bandit",
-    title: "Bandit (with YoungBoy Never Broke Again)",
-    status: "released",
-    album: "Single",
-    year: 2019,
-    producers: ["Nessian","Brick"],
-    writers: ["Jarad Higgins"],
-    lengthSec: 232,
-    tags: ["collab","anthem"],
-    cover: "https://i.scdn.co/image/ab67616d0000b2735ecf9e09fe67d2fcb02d5cec",
-    links: [{ label: "Spotify", url: "https://open.spotify.com/track/62vpWI1CHwFy7tMIcSStl8" }],
-    description: "Hit single with NBA YoungBoy.",
-  },
-  {
-    id: "robbery",
-    title: "Robbery",
-    status: "released",
-    album: "Death Race For Love",
-    year: 2019,
-    producers: ["Nick Mira"],
-    writers: ["Jarad Higgins"],
-    lengthSec: 270,
-    tags: ["anthem","melodic"],
-    cover: "",
-    links: [],
-    description: "Lead single to DRFL.",
-  },
-  {
-    id: "hear-me-calling",
-    title: "Hear Me Calling",
-    status: "released",
-    album: "Death Race For Love",
-    year: 2019,
-    producers: ["Purps"],
-    writers: ["Jarad Higgins"],
-    lengthSec: 189,
-    tags: ["melodic","anthem"],
-    cover: "",
-    links: [],
-    description: "Dancehall-tinged single from DRFL.",
-  },
-  {
-    id: "fine-china",
-    title: "Fine China (with Future)",
-    status: "released",
-    album: "Future & Juice WRLD Present... WRLD ON DRUGS",
-    year: 2018,
-    producers: ["Wheezy"],
-    writers: ["Jarad Higgins"],
-    lengthSec: 190,
-    tags: ["collab","anthem"],
-    cover: "",
-    links: [],
-    description: "Big single from the collaborative tape.",
-  },
-  {
-    id: "jet-lag",
-    title: "Jet Lag (with Young Scooter)",
-    status: "released",
-    album: "Future & Juice WRLD Present... WRLD ON DRUGS",
-    year: 2018,
-    producers: ["Danny Wolf"],
-    writers: ["Jarad Higgins"],
-    lengthSec: 194,
-    tags: ["collab"],
-    cover: "",
-    links: [],
-    description: "Fan-favorite from the collab project.",
-  },
-];
+// Start empty; populated from public sources (Google Sheet)
+const SONGS = [];
+
+// Data is fetched from public APIs at runtime (MusicBrainz + Cover Art Archive)
 
 const els = {
   // search/status removed per request
@@ -488,7 +224,11 @@ function init(){
   els.albumModal.addEventListener('click', (e)=>{ if(e.target === els.albumModal) els.albumModal.close(); });
   els.tabSongs.addEventListener('click', ()=> setTab('songs'));
   els.tabAlbums.addEventListener('click', ()=> setTab('albums'));
-  refreshArtworkForAll().then(()=>{ if(state.view==='songs') render(); });
+  // Pull data from public APIs, then refresh artwork
+  fetchFromITunes()
+    .catch(()=>{})
+    .then(()=> refreshArtworkForAll())
+    .then(()=>{ if(state.view==='songs') render(); });
 }
 
 // removed CSV/import helpers
@@ -530,6 +270,55 @@ function persistArtworkCache(){ localStorage.setItem('jw_art', JSON.stringify(ar
 async function refreshArtworkForAll(){
   const tasks = SONGS.map(s=>fetchArtworkForSong(s).catch(()=>''));
   await Promise.all(tasks);
+}
+
+// --- iTunes Search API (public, no auth) ---
+async function fetchFromITunes(){
+  const artist = await itunesFindArtist('Juice WRLD');
+  if(!artist) return;
+  const [albums, songs] = await Promise.all([
+    itunesLookup(artist.artistId, 'album', 200),
+    itunesLookup(artist.artistId, 'song', 200),
+  ]);
+  // Albums
+  ALBUMS.splice(0, ALBUMS.length, ...albums.map(a=>({
+    name: a.collectionName,
+    releaseDate: a.releaseDate ? a.releaseDate.slice(0,10) : '',
+    reissueDate: '',
+    tags: ['album'],
+    cover: a.artworkUrl100 ? a.artworkUrl100.replace('100x100bb.jpg','512x512bb.jpg') : '',
+  })));
+  // Songs
+  SONGS.splice(0, SONGS.length, ...songs
+    .filter(s=> /juice wrld/i.test(s.artistName||''))
+    .map(s=>({
+      id: String(s.trackId || s.trackViewUrl),
+      title: s.trackName,
+      status: 'released',
+      album: s.collectionName || 'Single',
+      year: s.releaseDate ? new Date(s.releaseDate).getFullYear() : undefined,
+      producers: [],
+      writers: [],
+      lengthSec: s.trackTimeMillis ? Math.round(s.trackTimeMillis/1000) : undefined,
+      tags: [],
+      cover: s.artworkUrl100 ? s.artworkUrl100.replace('100x100bb.jpg','512x512bb.jpg') : '',
+      links: s.trackViewUrl ? [{ label: 'Apple Music', url: s.trackViewUrl }] : [],
+      description: '',
+    }))
+  );
+}
+
+async function itunesFindArtist(name){
+  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(name)}&entity=musicArtist&limit=5`;
+  const res = await fetch(url); if(!res.ok) return null; const json = await res.json();
+  return (json.results||[]).find(a=> (a.artistName||'').toLowerCase()===name.toLowerCase()) || (json.results||[])[0] || null;
+}
+
+async function itunesLookup(artistId, entity, limit){
+  const url = `https://itunes.apple.com/lookup?id=${artistId}&entity=${entity}&limit=${limit||200}`;
+  const res = await fetch(url); if(!res.ok) return [];
+  const json = await res.json();
+  return (json.results||[]).filter(x=> x.wrapperType==='collection' || x.wrapperType==='track');
 }
 
 // removed MusicBrainz/CAA sync helpers
