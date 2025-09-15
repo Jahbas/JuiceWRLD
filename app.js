@@ -86,8 +86,8 @@ function albumCardHtml(album){
 function openAlbumModal(album){
   const songs = SONGS
     .filter(s=> (album.id && s.albumId===album.id) || s.album===album.name)
-    .reduce((acc, s)=>{ const k = `${s.title.toLowerCase()}|${s.albumId||s.album}`; if(!acc.map.has(k)){ acc.map.set(k, true); acc.list.push(s); } return acc; }, {list:[], map:new Map()}).list
-    .sort((a,b)=>a.title.localeCompare(b.title));
+    .reduce((acc, s)=>{ const k = `${s.albumId||s.album}|${s.discNumber||1}|${s.trackNumber||0}|${(s.title||'').toLowerCase()}`; if(!acc.map.has(k)){ acc.map.set(k, true); acc.list.push(s); } return acc; }, {list:[], map:new Map()}).list
+    .sort((a,b)=> (a.discNumber||1)-(b.discNumber||1) || (a.trackNumber||0)-(b.trackNumber||0) || a.title.localeCompare(b.title));
   els.albumTitle.textContent = album.name;
   els.albumMeta.innerHTML = [
     album.releaseDate && `Release: <strong>${album.releaseDate}</strong>`,
@@ -267,23 +267,36 @@ async function refreshArtworkForAll(){
 }
 
 // --- iTunes Search API (public, no auth) ---
+const ITUNES_ARTIST_ID = 1368733420; // Juice WRLD
 async function fetchFromITunes(){
-  const artist = await itunesFindArtist('Juice WRLD');
-  if(!artist) return;
+  const artistId = ITUNES_ARTIST_ID;
   const [albums, songs, albumsSearch, songsSearch] = await Promise.all([
-    itunesLookup(artist.artistId, 'album', 200),
-    itunesLookup(artist.artistId, 'song', 200),
+    itunesLookup(artistId, 'album', 200),
+    itunesLookup(artistId, 'song', 200),
     itunesSearchPaged('Juice WRLD', 'album', 5),
     itunesSearchPaged('Juice WRLD', 'song', 8),
   ]);
   const allAlbums = dedupeBy(
-    [...albums, ...albumsSearch],
+    [...albums, ...albumsSearch].filter(a=>
+      String(a.artistId||a.collectionArtistId)===String(artistId) || /juice wrld/i.test(a.artistName||a.collectionArtistName||'')
+    ),
     a => String(a.collectionId || a.collectionName)
   );
-  const allSongs = dedupeBy(
-    [...songs, ...songsSearch].filter(s=> /juice wrld/i.test(s.artistName||'')),
-    s => String(s.trackId || s.trackViewUrl || `${s.trackName}-${s.collectionId}`)
-  );
+  // Merge songs and hard-dedupe by trackId → fallback by album-position
+  const mergedSongs = [...songs, ...songsSearch].filter(s=> String(s.artistId)===String(artistId) || /juice wrld/i.test(s.artistName||''));
+  const byTrackId = new Map();
+  const provisional = [];
+  for(const s of mergedSongs){
+    if(s.trackId){ if(!byTrackId.has(s.trackId)) byTrackId.set(s.trackId, s); }
+    else provisional.push(s);
+  }
+  // Secondary dedupe for items missing trackId: by collectionId+discNumber+trackNumber+trackName
+  const byPos = new Map();
+  for(const s of provisional){
+    const key = `${s.collectionId||''}|${s.discNumber||1}|${s.trackNumber||0}|${(s.trackName||'').toLowerCase()}`;
+    if(!byPos.has(key)) byPos.set(key, s);
+  }
+  const allSongs = [...byTrackId.values(), ...byPos.values()];
   // Albums
   ALBUMS.splice(0, ALBUMS.length, ...allAlbums.map(a=>({
     id: a.collectionId,
@@ -304,13 +317,26 @@ async function fetchFromITunes(){
     producers: [],
     writers: [],
     lengthSec: s.trackTimeMillis ? Math.round(s.trackTimeMillis/1000) : undefined,
+    trackNumber: s.trackNumber || null,
+    discNumber: s.discNumber || 1,
     tags: [],
     cover: s.artworkUrl100 ? s.artworkUrl100.replace('100x100bb.jpg','512x512bb.jpg') : '',
     links: s.trackViewUrl ? [{ label: 'Apple Music', url: s.trackViewUrl }] : [],
     description: '',
   })));
+  // Final safety: dedupe SONGS list globally by id and by album-position key
+  const uniqueById = new Map();
+  const fallbackByPos = new Map();
+  const finalSongs = [];
+  for(const s of SONGS){
+    if(s.id && !uniqueById.has(s.id)){ uniqueById.set(s.id, true); finalSongs.push(s); continue; }
+    const k = `${s.albumId||s.album}|${s.discNumber||1}|${s.trackNumber||0}|${(s.title||'').toLowerCase()}`;
+    if(!fallbackByPos.has(k)){ fallbackByPos.set(k, true); finalSongs.push(s); }
+  }
+  SONGS.splice(0, SONGS.length, ...finalSongs);
 }
 
+// kept for potential future use
 async function itunesFindArtist(name){
   const url = `https://itunes.apple.com/search?term=${encodeURIComponent(name)}&entity=musicArtist&limit=5`;
   const res = await fetch(url); if(!res.ok) return null; const json = await res.json();
