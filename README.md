@@ -1,3 +1,5 @@
+# Discontinued for undisclosed time.
+
 # Juice WRLD Tracker (Dark, Sleek, Rounded)
 
 A lightweight, dark-themed web app that tracks Juice WRLD songs and albums with a sleek rounded UI, artwork-first cards, and clean info modals.
