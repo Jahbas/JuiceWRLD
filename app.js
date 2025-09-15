@@ -84,7 +84,10 @@ function albumCardHtml(album){
 }
 
 function openAlbumModal(album){
-  const songs = SONGS.filter(s=> (album.id && s.albumId===album.id) || s.album===album.name).sort((a,b)=>a.title.localeCompare(b.title));
+  const songs = SONGS
+    .filter(s=> (album.id && s.albumId===album.id) || s.album===album.name)
+    .reduce((acc, s)=>{ const k = `${s.title.toLowerCase()}|${s.albumId||s.album}`; if(!acc.map.has(k)){ acc.map.set(k, true); acc.list.push(s); } return acc; }, {list:[], map:new Map()}).list
+    .sort((a,b)=>a.title.localeCompare(b.title));
   els.albumTitle.textContent = album.name;
   els.albumMeta.innerHTML = [
     album.releaseDate && `Release: <strong>${album.releaseDate}</strong>`,
@@ -95,8 +98,11 @@ function openAlbumModal(album){
   els.albumTracks.innerHTML = songs.map(s=>`
     <div class="track-row" data-id="${s.id}">
       <span>${s.title}</span>
-      <span class="sub">${secondsToTime(s.lengthSec)} • ${s.status}</span>
-      <button class="icon-btn info" title="Details of ${s.title}">i</button>
+      <span class="track-right">
+        <span class="sub">${s.lengthSec?secondsToTime(s.lengthSec):''}</span>
+        <span class="badge ${s.status||'released'}">${s.status||'released'}</span>
+        <button class="icon-btn info" title="Details of ${s.title}">i</button>
+      </span>
     </div>
   `).join('');
   els.albumArt.style.backgroundImage = album.cover ? `url(${album.cover})` : '';

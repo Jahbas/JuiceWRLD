@@ -116,6 +116,11 @@ body{
 .description{color:#cfd5e3; line-height:1.6}
 
 .track-row{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); margin-top:8px}
+.track-right{display:flex; align-items:center; gap:10px}
+.badge{padding:4px 8px; border-radius:999px; font-size:12px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); color:var(--text)}
+.badge.released{border-color:rgba(51,214,166,.5); background:rgba(51,214,166,.15)}
+.badge.unreleased{border-color:rgba(255,107,107,.5); background:rgba(255,107,107,.12)}
+.badge.leaked{border-color:rgba(255,209,102,.5); background:rgba(255,209,102,.12)}
 
 .footer{max-width:1200px; margin:40px auto; padding:0 20px; color:var(--muted)}
 
