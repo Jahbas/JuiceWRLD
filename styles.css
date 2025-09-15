@@ -128,4 +128,5 @@ body{
 .spinner{width:32px; height:32px; border-radius:50%; border:3px solid rgba(255,255,255,.15); border-top-color:var(--accent); animation:spin 1s linear infinite}
 .loading-text{color:var(--muted)}
 @keyframes spin{to{transform:rotate(360deg)}}
+.loading-overlay[hidden]{display:none !important}
 
