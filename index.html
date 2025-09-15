@@ -17,6 +17,10 @@
             <h1 class="title">Juice WRLD Tracker</h1>
         </div>
         <div class="controls">
+            <div class="tabs" role="tablist" aria-label="View">
+                <button id="tabSongs" class="tab is-active" role="tab" aria-selected="true" data-view="songs">Songs</button>
+                <button id="tabAlbums" class="tab" role="tab" aria-selected="false" data-view="albums">Albums</button>
+            </div>
             <div class="search-wrap">
                 <input id="search" type="search" placeholder="Search songs, albums, producers, tags..." aria-label="Search songs">
             </div>
@@ -27,11 +31,11 @@
                     <option value="unreleased">Unreleased</option>
                     <option value="leaked">Leaked</option>
                 </select>
-                <select id="albumFilter" aria-label="Album">
-                    <option value="all">All albums</option>
-                </select>
-                <select id="yearFilter" aria-label="Year">
-                    <option value="all">All years</option>
+                <select id="albumSort" aria-label="Album sort" hidden>
+                    <option value="recent">Newest first</option>
+                    <option value="oldest">Oldest first</option>
+                    <option value="az">A → Z</option>
+                    <option value="za">Z → A</option>
                 </select>
             </div>
         </div>
@@ -40,7 +44,7 @@
     <main class="container">
         <section id="stats" class="stats" aria-live="polite"></section>
         <section id="chips" class="chips" aria-label="Active filters"></section>
-        <section id="grid" class="grid" aria-label="Song results"></section>
+        <section id="grid" class="grid" aria-label="Results"></section>
     </main>
 
     <dialog id="songModal" class="modal" aria-label="Song details">
@@ -60,6 +64,25 @@
             </div>
         </div>
     </dialog>
+
+    <dialog id="albumModal" class="modal" aria-label="Album details">
+        <form method="dialog">
+            <button class="icon-btn close" aria-label="Close" title="Close">
+                <span>&times;</span>
+            </button>
+        </form>
+        <div class="modal-content">
+            <div class="modal-art" id="albumArt" aria-hidden="true"></div>
+            <div class="modal-body">
+                <h2 id="albumTitle"></h2>
+                <div class="meta-row" id="albumMeta"></div>
+                <div class="tags" id="albumTags"></div>
+                <div id="albumTracks"></div>
+            </div>
+        </div>
+    </dialog>
+
+    
 
     <footer class="footer">
         <p>
