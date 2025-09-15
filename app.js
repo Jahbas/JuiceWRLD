@@ -294,6 +294,7 @@ const els = {
   albumTags: document.getElementById('albumTags'),
   albumTracks: document.getElementById('albumTracks'),
   // import UI removed per request
+  syncBtn: document.getElementById('syncBtn'),
 };
 
 function secondsToTime(s){
@@ -517,6 +518,18 @@ function init(){
   els.tabAlbums.addEventListener('click', ()=> setTab('albums'));
   // Preload artwork
   refreshArtworkForAll().then(()=>{ if(state.view==='songs') render(); });
+
+  // Sync public data
+  els.syncBtn.addEventListener('click', async ()=>{
+    try{
+      els.syncBtn.disabled = true;
+      await syncPublic();
+      await refreshArtworkForAll();
+      render();
+      alert('Synced tracks and albums from public archives.');
+    }catch(e){ console.error(e); alert('Sync failed'); }
+    finally{ els.syncBtn.disabled = false; }
+  });
 }
 
 // --- CSV & Import ---
@@ -632,6 +645,58 @@ async function refreshArtworkForAll(){
   await Promise.all(tasks);
 }
 
+// --- Public Sync (iTunes Search API) ---
+async function syncPublic(){
+  // Pull multiple batches with different terms to reach 100+ results
+  const terms = [
+    'Juice WRLD', 'Juice WRLD Legends Never Die', 'Juice WRLD Goodbye & Good Riddance',
+    'Juice WRLD Death Race For Love', 'Juice WRLD Fighting Demons', 'WRLD On Drugs',
+    'Juice WRLD single', 'Juice WRLD remix'
+  ];
+  const results = [];
+  for(const t of terms){
+    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(t)}&entity=song&limit=200`;
+    const res = await fetch(url); if(!res.ok) continue; const json = await res.json();
+    for(const r of (json.results||[])){
+      if(!/juice wrld/i.test(r.artistName||'')) continue;
+      results.push(r);
+    }
+  }
+  // Map to songs and albums
+  const byTrackId = new Map();
+  for(const r of results){ if(!byTrackId.has(r.trackId)) byTrackId.set(r.trackId, r); }
+  const mappedSongs = [...byTrackId.values()].map(r=>({
+    id: String(r.trackId),
+    title: r.trackName,
+    status: 'released',
+    album: r.collectionName || 'Single',
+    year: r.releaseDate ? new Date(r.releaseDate).getFullYear() : undefined,
+    producers: [],
+    writers: [],
+    lengthSec: Math.round((r.trackTimeMillis||0)/1000),
+    tags: [],
+    cover: r.artworkUrl100 ? r.artworkUrl100.replace('100x100bb.jpg','512x512bb.jpg') : '',
+    links: r.trackViewUrl ? [{label:'Apple Music', url:r.trackViewUrl}] : [],
+    description: '',
+  }));
+  // Merge into SONGS deduping by title+album
+  for(const s of mappedSongs){
+    const existing = SONGS.find(x=> x.title.toLowerCase()===s.title.toLowerCase() && x.album===s.album);
+    if(existing) Object.assign(existing, s);
+    else SONGS.push(s);
+  }
+  // Albums set
+  const albumSet = new Map(ALBUMS.map(a=>[a.name,a]));
+  for(const s of mappedSongs){
+    if(!s.album || s.album==='Single' || s.album==='N/A') continue;
+    if(!albumSet.has(s.album)){
+      albumSet.set(s.album, { name: s.album, releaseDate: s.year? String(s.year):'', reissueDate: '', tags: [] });
+    }
+  }
+  // Keep only first 200 (already ample > 100)
+  const mergedAlbums = [...albumSet.values()];
+  ALBUMS.splice(0, ALBUMS.length, ...mergedAlbums);
+}
 
 document.addEventListener('DOMContentLoaded', init);
 
