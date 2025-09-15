@@ -271,8 +271,7 @@ const SONGS = [
 ];
 
 const els = {
-  search: document.getElementById('search'),
-  statusFilter: document.getElementById('statusFilter'),
+  // search/status removed per request
   // album/year filters removed per request
   albumSort: document.getElementById('albumSort'),
   tabSongs: document.getElementById('tabSongs'),
@@ -293,8 +292,6 @@ const els = {
   albumMeta: document.getElementById('albumMeta'),
   albumTags: document.getElementById('albumTags'),
   albumTracks: document.getElementById('albumTracks'),
-  // import UI removed per request
-  syncBtn: document.getElementById('syncBtn'),
 };
 
 function secondsToTime(s){
@@ -303,7 +300,7 @@ function secondsToTime(s){
 
 function unique(values){ return [...new Set(values)]; }
 
-function populateFilters(){ /* filters simplified */ }
+// removed: populateFilters (filters removed)
 
 function renderStats(filtered){
   const total = SONGS.length;
@@ -312,18 +309,7 @@ function renderStats(filtered){
   els.stats.innerHTML = `Showing <strong>${filtered.length}</strong> of ${total} • Released: ${rel} • Unreleased: ${unrel}`;
 }
 
-function renderChips(){
-  const chips = [];
-  if(els.search.value){ chips.push({label:`Search: ${els.search.value}`, key:'search'}) }
-  if(els.statusFilter.value!=='all'){ chips.push({label:`Status: ${els.statusFilter.value}`, key:'status'}) }
-  els.chips.innerHTML = chips.map(c=>`<button class="chip" data-key="${c.key}">${c.label} ✕</button>`).join('');
-  els.chips.querySelectorAll('button').forEach(btn=>btn.addEventListener('click', ()=>{
-    const k = btn.dataset.key;
-    if(k==='search') els.search.value='';
-    if(k==='status') els.statusFilter.value='all';
-    update();
-  }));
-}
+function renderChips(){ els.chips.innerHTML = ''; }
 
 function cardHtml(song){
   const badgeColor = song.status==='released' ? 'var(--ok)' : song.status==='leaked' ? 'var(--warn)' : 'var(--danger)';
@@ -450,27 +436,18 @@ function bindCardEvents(){
   });
 }
 
-function filterSongs(){
-  const q = els.search.value.toLowerCase().trim();
-  const status = els.statusFilter.value;
-  return SONGS.filter(s=>{
-    const matchQ = !q || [s.title, s.album, s.producers?.join(' '), s.tags?.join(' ')]
-      .filter(Boolean).join(' ').toLowerCase().includes(q);
-    const matchStatus = status==='all' || s.status===status;
-    return matchQ && matchStatus;
-  });
-}
+function filterSongs(){ return SONGS; }
 
 function render(){
   if(state.view==='songs'){
-    els.albumSort.hidden = true; els.statusFilter.hidden = false;
+    els.albumSort.hidden = true;
     const filtered = filterSongs();
     renderStats(filtered);
     renderChips();
     els.grid.innerHTML = filtered.map(cardHtml).join('');
     bindCardEvents();
   }else{
-    els.albumSort.hidden = false; els.statusFilter.hidden = true;
+    els.albumSort.hidden = false;
     const albums = getAlbums();
     const sorted = sortAlbums(albums, els.albumSort.value||'recent');
     els.stats.textContent = `Albums: ${sorted.length}`;
@@ -501,12 +478,7 @@ function sortAlbums(albums, mode){
 }
 
 function init(){
-  populateFilters();
   render();
-  [els.search, els.statusFilter].forEach(el=>{
-    el.addEventListener('input', update);
-    el.addEventListener('change', update);
-  });
   els.albumSort.addEventListener('change', ()=> state.view==='albums' && render());
   const close = document.querySelector('.modal .close');
   close?.addEventListener('click', ()=> els.modal.close());
@@ -516,95 +488,10 @@ function init(){
   els.albumModal.addEventListener('click', (e)=>{ if(e.target === els.albumModal) els.albumModal.close(); });
   els.tabSongs.addEventListener('click', ()=> setTab('songs'));
   els.tabAlbums.addEventListener('click', ()=> setTab('albums'));
-  // Preload artwork
   refreshArtworkForAll().then(()=>{ if(state.view==='songs') render(); });
-
-  // Sync public data
-  els.syncBtn.addEventListener('click', async ()=>{
-    try{
-      els.syncBtn.disabled = true;
-      await syncPublic();
-      await refreshArtworkForAll();
-      render();
-      alert('Synced tracks and albums from public archives.');
-    }catch(e){ console.error(e); alert('Sync failed'); }
-    finally{ els.syncBtn.disabled = false; }
-  });
 }
 
-// --- CSV & Import ---
-function parseCsv(text){
-  const lines = text.split(/\r?\n/).filter(Boolean);
-  const header = lines[0].split(',').map(h=>h.trim().toLowerCase());
-  const out = [];
-  for(let i=1;i<lines.length;i++){
-    const cols = smartSplitCsv(lines[i]);
-    const row = {};
-    header.forEach((h,idx)=> row[h] = (cols[idx]||'').trim());
-    out.push(row);
-  }
-  return out;
-}
-
-function smartSplitCsv(line){
-  const result = []; let cur = ''; let inQ=false;
-  for(let i=0;i<line.length;i++){
-    const c=line[i];
-    if(c==='"'){ inQ=!inQ; continue; }
-    if(c===',' && !inQ){ result.push(cur); cur=''; continue; }
-    cur+=c;
-  }
-  result.push(cur);
-  return result;
-}
-
-async function fetchCsv(url){
-  if(!url) return '';
-  // If Google Sheets view link is pasted, convert to CSV export
-  if(url.includes('docs.google.com') && !url.includes('export?format=csv')){
-    const base = url.split('/edit')[0];
-    url = `${base}/export?format=csv`;
-  }
-  const res = await fetch(url); return await res.text();
-}
-
-function mergeImported(rows){
-  // Expected columns: title,album,year,status,lengthSec,producers,writers,tags,spotify_url
-  for(const r of rows){
-    const id = (r.id || `${(r.title||'').toLowerCase().replace(/[^a-z0-9]+/g,'-')}`);
-    if(!r.title) continue;
-    const existing = SONGS.find(s=>s.id===id || s.title.toLowerCase()===r.title.toLowerCase());
-    const base = {
-      id,
-      title: r.title,
-      status: r.status?.toLowerCase()||'released',
-      album: r.album||'Single',
-      year: Number(r.year)||undefined,
-      lengthSec: Number(r.lengthsec)||Number(r.length)||undefined,
-      producers: splitSemi(r.producers),
-      writers: splitSemi(r.writers),
-      tags: splitSemi(r.tags),
-      cover: '',
-      links: r.spotify_url ? [{label:'Spotify', url:r.spotify_url}] : [],
-      description: r.description||'',
-    };
-    if(existing){ Object.assign(existing, base); }
-    else SONGS.push(base);
-  }
-}
-
-function splitSemi(s){
-  if(!s) return [];
-  return String(s).split(/;|\|/).map(x=>x.trim()).filter(Boolean);
-}
-
-function cacheImported(rows){ localStorage.setItem('jw_import', JSON.stringify(rows)); }
-function restoreImported(){
-  try{
-    const raw = localStorage.getItem('jw_import'); if(!raw) return;
-    const rows = JSON.parse(raw); mergeImported(rows);
-  }catch{}
-}
+// removed CSV/import helpers
 
 // --- Artwork fetching ---
 const artworkCache = JSON.parse(localStorage.getItem('jw_art')||'{}');
@@ -645,58 +532,7 @@ async function refreshArtworkForAll(){
   await Promise.all(tasks);
 }
 
-// --- Public Sync (iTunes Search API) ---
-async function syncPublic(){
-  // Pull multiple batches with different terms to reach 100+ results
-  const terms = [
-    'Juice WRLD', 'Juice WRLD Legends Never Die', 'Juice WRLD Goodbye & Good Riddance',
-    'Juice WRLD Death Race For Love', 'Juice WRLD Fighting Demons', 'WRLD On Drugs',
-    'Juice WRLD single', 'Juice WRLD remix'
-  ];
-  const results = [];
-  for(const t of terms){
-    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(t)}&entity=song&limit=200`;
-    const res = await fetch(url); if(!res.ok) continue; const json = await res.json();
-    for(const r of (json.results||[])){
-      if(!/juice wrld/i.test(r.artistName||'')) continue;
-      results.push(r);
-    }
-  }
-  // Map to songs and albums
-  const byTrackId = new Map();
-  for(const r of results){ if(!byTrackId.has(r.trackId)) byTrackId.set(r.trackId, r); }
-  const mappedSongs = [...byTrackId.values()].map(r=>({
-    id: String(r.trackId),
-    title: r.trackName,
-    status: 'released',
-    album: r.collectionName || 'Single',
-    year: r.releaseDate ? new Date(r.releaseDate).getFullYear() : undefined,
-    producers: [],
-    writers: [],
-    lengthSec: Math.round((r.trackTimeMillis||0)/1000),
-    tags: [],
-    cover: r.artworkUrl100 ? r.artworkUrl100.replace('100x100bb.jpg','512x512bb.jpg') : '',
-    links: r.trackViewUrl ? [{label:'Apple Music', url:r.trackViewUrl}] : [],
-    description: '',
-  }));
-  // Merge into SONGS deduping by title+album
-  for(const s of mappedSongs){
-    const existing = SONGS.find(x=> x.title.toLowerCase()===s.title.toLowerCase() && x.album===s.album);
-    if(existing) Object.assign(existing, s);
-    else SONGS.push(s);
-  }
-  // Albums set
-  const albumSet = new Map(ALBUMS.map(a=>[a.name,a]));
-  for(const s of mappedSongs){
-    if(!s.album || s.album==='Single' || s.album==='N/A') continue;
-    if(!albumSet.has(s.album)){
-      albumSet.set(s.album, { name: s.album, releaseDate: s.year? String(s.year):'', reissueDate: '', tags: [] });
-    }
-  }
-  // Keep only first 200 (already ample > 100)
-  const mergedAlbums = [...albumSet.values()];
-  ALBUMS.splice(0, ALBUMS.length, ...mergedAlbums);
-}
+// removed MusicBrainz/CAA sync helpers
 
 document.addEventListener('DOMContentLoaded', init);
 

@@ -21,23 +21,13 @@
                 <button id="tabSongs" class="tab is-active" role="tab" aria-selected="true" data-view="songs">Songs</button>
                 <button id="tabAlbums" class="tab" role="tab" aria-selected="false" data-view="albums">Albums</button>
             </div>
-            <div class="search-wrap">
-                <input id="search" type="search" placeholder="Search songs, albums, producers, tags..." aria-label="Search songs">
-            </div>
             <div class="filter-group" role="group" aria-label="Filters">
-                <select id="statusFilter" aria-label="Release status">
-                    <option value="all">All</option>
-                    <option value="released">Released</option>
-                    <option value="unreleased">Unreleased</option>
-                    <option value="leaked">Leaked</option>
-                </select>
                 <select id="albumSort" aria-label="Album sort" hidden>
                     <option value="recent">Newest first</option>
                     <option value="oldest">Oldest first</option>
                     <option value="az">A → Z</option>
                     <option value="za">Z → A</option>
                 </select>
-                <button id="syncBtn" class="icon-btn" title="Sync from public archives" aria-label="Sync">↻</button>
             </div>
         </div>
     </header>
